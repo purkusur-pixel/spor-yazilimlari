@@ -23,8 +23,7 @@ SporcuTakip/chat.html
 *.onnx
 *.weights
 
-# Büyük Medya ve Arşiv Dosyaları
-*.mp4
+# Büyük Medya ve Arşiv Dosyaları (Örnek maç videosu hariç)
 *.avi
 *.mov
 *.rar
