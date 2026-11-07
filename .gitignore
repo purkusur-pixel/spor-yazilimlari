@@ -1,0 +1,41 @@
+# Visual Studio / IDE
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.vsidx
+
+# Build & Packages
+[Bb]in/
+[Oo]bj/
+packages/
+app.publish/
+
+# Yapay Zeka / Gizli Anahtarlar ve Model Ağırlıkları
+SporcuTakip/ChatServer.cs
+SporcuTakip/Form_chatgpt.cs
+SporcuTakip/Form_chatgpt.Designer.cs
+SporcuTakip/Form_chatgpt.resx
+SporcuTakip/chat.html
+*.pt
+*.pth
+*.onnx
+*.weights
+
+# Büyük Medya ve Arşiv Dosyaları
+*.mp4
+*.avi
+*.mov
+*.rar
+*.zip
+*.7z
+Ekran*.png
+
+# Geçici ve Çalışma Zamanı Klasörleri
+temp/
+frameler/
+*.log
+__pycache__/
+*.py[cod]
+*$py.class

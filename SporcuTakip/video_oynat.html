@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>Video Oynatıcı</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        :root {
+            --wrap-w: 90%;
+            --wrap-max: 960px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #111;
+            color: #eee;
+            font-family: sans-serif;
+            min-height: 100vh;
+            display: grid;
+            place-items: start center;
+        }
+
+        /* Sarmalayıcı */
+        #playerWrap {
+            position: relative;
+            width: var(--wrap-w);
+            max-width: var(--wrap-max);
+            margin: 20px auto;
+            aspect-ratio: 16/9;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background: #000;
+        }
+
+        /* Sayaç overlay */
+        #frameCounter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font: 13px/1.2 monospace;
+            z-index: 3;
+        }
+
+        /* Buton overlay barı */
+        .overlay-controls {
+            position: absolute;
+            left: 50%;
+            bottom: 12px;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            background: rgba(0,0,0,0.55);
+            padding: 8px 10px;
+            border-radius: 10px;
+            z-index: 3;
+            backdrop-filter: blur(2px);
+            padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        }
+
+            /* Mavi genel buton */
+            .overlay-controls button {
+                padding: 8px 12px;
+                font-size: 14px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                background: #0d6efd;
+                color: #fff;
+            }
+
+        /* FRAME butonları (kırmızı) */
+        .frameBtn {
+            background: #dc3545 !important;
+        }
+
+        .overlay-controls button:hover {
+            filter: brightness(0.85);
+        }
+
+        @media (max-width: 480px) {
+            .overlay-controls {
+                bottom: 8px;
+                gap: 6px;
+            }
+
+                .overlay-controls button {
+                    padding: 7px 10px;
+                    font-size: 13px;
+                }
+        }
+    </style>
+</head>
+<body>
+    <div id="playerWrap">
+        <video id="videoPlayer" controls>
+            <source id="videoSource" type="video/mp4" />
+            Tarayıcınız video etiketini desteklemiyor.
+        </video>
+
+        <div id="frameCounter">FPS: ? | Render: 0 | Kare: 0</div>
+
+        <div class="overlay-controls">
+            <button id="btnBackFrame" class="frameBtn">⏪ 1 Frame</button>
+            <button id="btnBack10">⏮️ 10 Sn</button>
+            <button id="btnFwdFrame" class="frameBtn">⏩ 1 Frame</button>
+            <button id="btnFwd10">⏭️ 10 Sn</button>
+            <button id="btnFullscreen">⛶ Tam Ekran</button>
+        </div>
+    </div>
+
+    <script>
+        const wrap = document.getElementById('playerWrap');
+        const video = document.getElementById('videoPlayer');
+        const frameCounter = document.getElementById('frameCounter');
+
+        let renderedCount = 0, callbackId = null, lastSrc = null;
+        let fpsAuto = 0, currentFrameIndex = 0;
+
+        // FPS ölçüm penceresi
+        let winFrames = 0, winTime = 0, lastMediaTime = null;
+        const MIN_SAMPLE_SEC = 0.35, MAX_SAMPLE_SEC = 2.0;
+
+        function resetFpsWindow() {
+            winFrames = 0;
+            winTime = 0;
+            lastMediaTime = null;
+        }
+
+        function startFrameLoop() {
+            if (callbackId) {
+                video.cancelVideoFrameCallback(callbackId);
+            }
+            callbackId = video.requestVideoFrameCallback(onFrame);
+        }
+
+        function stopFrameLoop() {
+            if (callbackId) {
+                video.cancelVideoFrameCallback(callbackId);
+                callbackId = null;
+            }
+        }
+
+        function updateUI() {
+            const fpsText = fpsAuto > 0 ? fpsAuto.toFixed(2) : "?";
+            frameCounter.textContent =
+                `FPS: ${fpsText} | Render: ${renderedCount} | Kare: ${currentFrameIndex}`;
+        }
+
+        function updateCurrentFrameIndex() {
+            const fps = fpsAuto > 0 ? fpsAuto : 25;
+            currentFrameIndex = Math.max(0, Math.round(video.currentTime * fps));
+            updateUI();
+        }
+
+        function onFrame(now, metadata) {
+            renderedCount++;
+            const mt = (metadata && typeof metadata.mediaTime === 'number')
+                ? metadata.mediaTime
+                : video.currentTime;
+
+            if (lastMediaTime !== null) {
+                const dt = mt - lastMediaTime;
+                if (dt > 0 && dt < 1.0) {
+                    winFrames++;
+                    winTime += dt;
+
+                    if (winTime > MAX_SAMPLE_SEC) {
+                        const keep = MIN_SAMPLE_SEC / winTime;
+                        winFrames = Math.max(1, Math.round(winFrames * keep));
+                        winTime = MIN_SAMPLE_SEC;
+                    }
+
+                    if (winTime >= MIN_SAMPLE_SEC) {
+                        const fpsNew = winFrames / winTime;
+                        fpsAuto = fpsAuto > 0
+                            ? (fpsAuto * 0.7 + fpsNew * 0.3)
+                            : fpsNew;
+                    }
+                }
+            }
+            lastMediaTime = mt;
+
+            updateCurrentFrameIndex();
+
+            // C# tarafına her 10 karede bir frameUpdate gönder
+            if (renderedCount % 10 === 0 && window.chrome?.webview) {
+                window.chrome.webview.postMessage(JSON.stringify({
+                    type: "frameUpdate",
+                    renderedCount,
+                    currentFrameIndex,
+                    currentTime: video.currentTime,
+                    fps: fpsAuto
+                }));
+            }
+
+            callbackId = video.requestVideoFrameCallback(onFrame);
+        }
+
+        /* === FRAME BAZLI ATLAMA (1 frame) === */
+        function jumpFrames(frameDelta) {
+            const fps = fpsAuto > 0 ? fpsAuto : 25;
+            const secDelta = frameDelta / fps;
+            let newTime = video.currentTime + secDelta;
+            newTime = Math.max(0, Math.min(video.duration || 0, newTime));
+            video.currentTime = newTime;
+        }
+
+        /* === SANİYE BAZLI ATLAMA (10 sn) === */
+        function jumpSeconds(secDelta) {
+            let newTime = video.currentTime + secDelta;
+            const dur = video.duration || 0;
+            if (dur > 0) {
+                newTime = Math.max(0, Math.min(dur, newTime));
+            } else {
+                newTime = Math.max(0, newTime);
+            }
+            video.currentTime = newTime;
+        }
+
+        /* === BUTONLAR === */
+        document.getElementById('btnBackFrame')
+            .addEventListener('click', () => jumpFrames(-1));
+        document.getElementById('btnFwdFrame')
+            .addEventListener('click', () => jumpFrames(1));
+
+        document.getElementById('btnBack10')
+            .addEventListener('click', () => jumpSeconds(-10));
+        document.getElementById('btnFwd10')
+            .addEventListener('click', () => jumpSeconds(10));
+
+        /* === TAM EKRAN === */
+        document.getElementById('btnFullscreen').addEventListener('click', async () => {
+            if (!document.fullscreenElement) {
+                try {
+                    await wrap.requestFullscreen();
+                } catch (e) { }
+            } else {
+                try {
+                    await document.exitFullscreen();
+                } catch (e) { }
+            }
+        });
+
+        /* === C# KOMUTLARI (WebView2) === */
+        window.chrome?.webview?.addEventListener('message', ev => {
+            const cmd = ev.data;
+            if (!cmd) return;
+
+            // Video oynat / kaynak değiştir
+            if (cmd.type === 'play') {
+                const newSrc = cmd.path;
+                if (newSrc !== lastSrc) {
+                    lastSrc = newSrc;
+                    renderedCount = 0;
+                    currentFrameIndex = 0;
+                    fpsAuto = 0;
+                    resetFpsWindow();
+                    stopFrameLoop();
+                }
+                document.getElementById('videoSource').src = newSrc;
+                video.load();
+                video.play();
+            }
+
+            // Durum sorgusu
+            if (cmd.type === 'checkStatus') {
+                const state = (video.paused || video.ended) ? "paused" : "playing";
+                window.chrome.webview.postMessage(state);
+            }
+        });
+
+        /* === Video Olayları === */
+        video.addEventListener('loadedmetadata', () => {
+            currentFrameIndex = 0;
+            fpsAuto = 0;
+            resetFpsWindow();
+            updateUI();
+        });
+
+        video.addEventListener('play', () => {
+            startFrameLoop();
+            window.chrome?.webview?.postMessage("playing");
+        });
+
+        video.addEventListener('pause', () => {
+            stopFrameLoop();
+            window.chrome?.webview?.postMessage("paused");
+        });
+
+        video.addEventListener('ended', () => {
+            stopFrameLoop();
+            if (window.chrome?.webview) {
+                window.chrome.webview.postMessage(JSON.stringify({
+                    type: "ended",
+                    renderedCount,
+                    currentFrameIndex,
+                    fps: fpsAuto
+                }));
+            }
+        });
+
+        video.addEventListener('seeking', resetFpsWindow);
+
+        video.addEventListener('seeked', () => {
+            updateCurrentFrameIndex();
+            if (!video.paused && !video.ended) {
+                startFrameLoop();
+            }
+        });
+
+        video.addEventListener('timeupdate', updateCurrentFrameIndex);
+
+        // Emniyet heartbeat (1 sn'de bir durum bildir)
+        setInterval(() => {
+            if (!window.chrome?.webview) return;
+            const state = (video.paused || video.ended) ? "paused" : "playing";
+            window.chrome.webview.postMessage(state);
+        }, 1000);
+    </script>
+</body>
+</html>

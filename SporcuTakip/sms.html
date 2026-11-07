@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>SMS Gönderim Modülü</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <h3 class="mb-4 text-center">📨 SMS Gönderim Paneli</h3>
+
+        <!-- Başlık -->
+        <div class="mb-3">
+            <label for="smsTitle" class="form-label">SMS Başlığı</label>
+            <input type="text" class="form-control" id="smsTitle" placeholder="Başlık giriniz">
+        </div>
+
+        <!-- Mesaj Metni -->
+        <div class="mb-3">
+            <label for="smsMessage" class="form-label">SMS Metni</label>
+            <textarea class="form-control" id="smsMessage" rows="4" placeholder="Gönderilecek mesajı yazınız..."></textarea>
+        </div>
+
+        <!-- Excel Yükleme -->
+        <div class="mb-3">
+            <label for="excelFile" class="form-label">Excel Dosyası (.xlsx)</label>
+            <input class="form-control" type="file" id="excelFile" accept=".xlsx">
+        </div>
+
+        <!-- Kişi Listesi -->
+        <div class="mb-3">
+            <label class="form-label">Yüklenen Kişiler</label>
+            <ul id="personList" class="list-group small"></ul>
+        </div>
+
+        <!-- Gönder Butonu -->
+        <div class="d-grid">
+            <button class="btn btn-primary" onclick="sendSms()">📤 SMS Gönder</button>
+        </div>
+    </div>
+
+    <!-- Excel Parser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+    let personData = [];
+
+    document.getElementById('excelFile').addEventListener('change', function (e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        personData = json;
+        showPersons();
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function showPersons() {
+      const list = document.getElementById('personList');
+      list.innerHTML = '';
+      personData.forEach((item) => {
+        const name = item.Ad || item.Name || "Bilinmeyen";
+        const number = item.Numara || item.Telefon || item.Number || "Numara yok";
+        const li = document.createElement('li');
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.textContent = `${name} - ${number}`;
+        list.appendChild(li);
+      });
+    }
+
+    function sendSms() {
+      const title = document.getElementById('smsTitle').value.trim();
+      const message = document.getElementById('smsMessage').value.trim();
+
+      if (!title || !message || personData.length === 0) {
+        alert("Lütfen başlık, mesaj ve kişi listesini doldurun.");
+        return;
+      }
+
+      const payload = {
+        title,
+        message,
+        recipients: personData
+      };
+
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(JSON.stringify(payload));
+      }
+
+      alert("SMS gönderme işlemi başlatıldı.");
+    }
+    </script>
+</body>
+</html>
