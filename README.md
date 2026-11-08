@@ -1,10 +1,6 @@
 # Tenis Veri Toplama ve Video Analiz Sistemi
 ### Tennis Data Collection & Video Analytics Tool
 
-<p align="center">
-  <img src="assets/logo.png" alt="Logo" width="120" />
-</p>
-
 Tenis müsabakaları ve antrenman kayıtları üzerinden yüksek doğrulukla **veri toplama**, **otomatik kort köşe tespiti**, **homografi tabanlı bölgelendirme**, **vuruş analizi** ve **oyuncu performans takibi** gerçekleştirmek üzere geliştirilmiş profesyonel bir masaüstü analiz yazılımıdır. 
 
 Uygulama; C# (.NET Framework / WinForms) kullanıcı arayüzü ile Python (OpenCV, PyQt5, Canny Edge Tabanlı Şablon Eşleme, Homografi & Geometrik Kestirim) analiz motorunu hibrit ve yüksek performanslı bir mimaride bir araya getirir.
@@ -211,3 +207,24 @@ pip install PyQt5 keyboard opencv-contrib-python numpy mss scikit-image
 2. `SporcuTakip.sln` çözüm dosyasını Visual Studio ile açın.
 3. Çözümü derleyin ve çalıştırın (`F5` veya `Ctrl+Shift+B`).
 4. **Tenis Analiz** butonuna basarak örnek videoyu seçin, **Otomatik Yerleştir** butonuyla Python köşe tespit algoritmasını çalıştırın veya **Sürüklenebilir Noktalar** ile kort kalibrasyonunu tamamlayın.
+
+---
+
+## 🏛 Proje Desteği ve Atıf
+
+<p align="center">
+  <img src="assets/trabzon-universitesi-logo.png" alt="Trabzon Üniversitesi" height="110" />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <img src="assets/tubitak-logo.png" alt="TÜBİTAK" height="110" />
+</p>
+
+Bu çalışma, Türkiye Bilimsel ve Teknolojik Araştırma Kurumu (TÜBİTAK) tarafından 1001 Programı – Spor Araştırmaları kapsamında desteklenen 124M890 numaralı "Tenis için Yapay Zekâ Destekli Top Atma Makinesi Üretimi" başlıklı proje kapsamında gerçekleştirilmiştir.
+
+This study was supported by the Scientific and Technological Research Council of Türkiye (TÜBİTAK) under the 1001 Programme – Sports Research (Project No: 124M890) within the scope of the project titled "Production of an Artificial Intelligence-Assisted Ball-Throwing Machine for Tennis".
+
+**Proje Yürütücüsü:** Prof. Dr. Serdar Alemdağ  
+**Yazılım Geliştirici:** Hüsnü Canbolat (husnucanbolat@trabzon.edu.tr)  
+**Çalışma Kapsamı:** Profesyonel tenis maç videolarında Canny kenar tabanlı şablon eşleme ile kort köşelerini otomatik tespit eden, homografi dönüşümüyle 32 bölgeli kort ızgarası oluşturan ve vuruş/düşme bölgelerini tek tuşla etiketleyerek SQLite veritabanına kaydeden C#/Python hibrit tenis veri toplama ve video analiz aracı geliştirilmiştir.  
+**Lisans:** MIT License — ayrıntılar için [LICENSE](LICENSE) dosyasına bakınız.
+
+Bu çalışmayı akademik veya endüstriyel projelerinizde kullanırsanız lütfen depoya atıfta bulununuz.
